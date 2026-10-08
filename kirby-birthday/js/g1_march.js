@@ -1,16 +1,16 @@
 (function(){
 Games.push({
 title:'第一關:步操訓練 🫡',
-rules:'第一部分:只靠聽!畫面不會顯示口令,要聽普通話口令按對應按鈕,而且越後面時間越短。8 個口令內錯誤不可達 3 次。\n第二部分:齊步走,音符會不規則地出現在左軌(藍=左腳)或右軌(粉紅=右腳),有時連續同一隻腳、有時半拍快步,到圈圈時按對應按鈕,命中約 65% 以上過關。\n(電腦鍵盤:口令用 1-6;踏步用 ←/→ 或 A/D)',
+rules:'第一部分:只靠聽!畫面不會顯示口令,要聽普通話口令按對應按鈕。時限由 2.6 秒逐步縮短到 2 秒,時間條會顯示剩餘時間。8 個口令內錯誤不可達 3 次。\n第二部分:齊步走,音符會不規則地出現在左軌(藍=左腳)或右軌(粉紅=右腳),有時連續同一隻腳、有時半拍快步,到圈圈時按對應按鈕,命中約 65% 以上過關。\n(電腦鍵盤:口令用 1-6;踏步用 ←/→ 或 A/D)',
 start(root,api){
   const W=360,H=300;
   root.innerHTML='<div class="info" id="g1i"></div><canvas id="g1c"></canvas><div class="cmd" id="g1cmd"></div><div class="bar"><i id="g1b"></i></div><div class="btns" id="g1btns"></div>';
   const cv=root.querySelector('#g1c');cv.width=W;cv.height=H;cv.style.setProperty('--ar',W/H);
   const c=cv.getContext('2d'),info=root.querySelector('#g1i'),cmdEl=root.querySelector('#g1cmd'),bar=root.querySelector('#g1b'),btns=root.querySelector('#g1btns');
   const CM=[['立正','F'],['向右轉','R'],['向左轉','L'],['向後轉','B'],['齊步走','M'],['稍息','S']];
-  let voiceOK=true,face='F',marching=false,atEase=false,phase='A',dead=false,raf=0,timers=[];
+  let voiceOK=true,limA=2600,need=10,face='F',marching=false,atEase=false,phase='A',dead=false,raf=0,timers=[];
   let round=0,mist=0,cur=null,deadline=0,acceptA=false,lastCmd=-1,bounce=0;
-  let need=10,B0=0,beatMs=500,hits=0,notes=[],bPhase=false,lastBeat=-1,flash='',flashT=0;
+  let B0=0,beatMs=500,hits=0,notes=[],bPhase=false,lastBeat=-1,flash='',flashT=0;
   api.onCleanup(()=>{dead=true;cancelAnimationFrame(raf);timers.forEach(clearTimeout);document.removeEventListener('keydown',onKey);speechSynthesis&&speechSynthesis.cancel&&speechSynthesis.cancel();});
   const later=(f,ms)=>{timers.push(setTimeout(()=>{if(!dead)f()},ms))};
   function mkBtns(){
@@ -26,9 +26,8 @@ start(root,api){
     later(()=>{
       let k;do{k=Math.floor(Math.random()*CM.length)}while(k===lastCmd);lastCmd=k;cur=k;
       checkVoice();cmdEl.textContent=voiceOK?'🔊 聽口令!':CM[k][0]+'!(此裝置沒有語音,顯示文字)';speak(CM[k][0]);Sfx.drum(true);
-      const lim=Math.max(1100,2300-round*170);deadline=performance.now()+lim;acceptA=true;
+      const lim=Math.round(2600-round*600/7);limA=lim;deadline=performance.now()+lim;acceptA=true;
       bar.style.transition='none';bar.style.width='100%';
-      requestAnimationFrame(()=>{bar.style.transition='width '+lim+'ms linear';bar.style.width='0%';});
       later(()=>{if(acceptA){acceptA=false;wrong('超時!');}},lim);
     },900+Math.random()*500);
   }
@@ -137,6 +136,7 @@ start(root,api){
       if(b!==lastBeat&&b>=0){lastBeat=b;Sfx.drum(b%4===0);
         if(b<4)cmdEl.textContent=['1','2','3','4'][b];else if(b===4)cmdEl.textContent='看音符,左右腳!';}
     }
+    if(phase==='A')bar.style.width=(acceptA?Math.max(0,Math.min(100,(deadline-now)/limA*100)):0)+'%';
     bounce*=0.9;
     const by=bounce*-6;
     fig(90,130+by,1,tt,marching,face);fig(180,130+by,1,tt,marching,face);fig(270,130+by,1,tt,marching,face);
