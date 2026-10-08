@@ -162,7 +162,7 @@ start(root,api){
   }
   function drawGuide(ang,pow){
     const r=trace(ang),ex=cue.x+r.dx*r.t,ey=cue.y+r.dy*r.t;
-    seg(cue.x,cue.y,ex,ey,'#ffffffcc',2,[8,6]);
+    seg(cue.x,cue.y,ex,ey,'#ffffffdd',2.5,[8,6]);
     c.save();c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(ex,ey,R,0,7);c.stroke();c.restore();
     if(r.ball){
       const hb=r.ball;let nx=hb.x-ex,ny=hb.y-ey;const nl=Math.hypot(nx,ny)||1;nx/=nl;ny/=nl;
