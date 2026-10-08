@@ -1,12 +1,15 @@
 window.showFinal=function(root,api){
   const W=400,H=560;
-  root.innerHTML='<canvas id="fc"></canvas><div class="info" id="fm" style="max-width:380px"></div><div class="row"><button class="btn" id="fs">🎵 重播生日歌</button><button class="btn alt" id="fr">🔁 重玩一次</button></div>';
+  root.innerHTML='<canvas id="fc"></canvas><div class="info" id="fm" style="max-width:380px"></div><div class="info" id="ftap" style="display:none;background:#ffd23f;border-radius:10px;padding:6px 12px">👆 瀏覽器要求先點一下畫面,點任何位置就會開始播放音樂</div><div class="row"><button class="btn" id="fs">🎵 重播生日歌</button><button class="btn alt" id="fr">🔁 重玩一次</button></div>';
   const cv=root.querySelector('#fc');cv.width=W;cv.height=H;cv.style.setProperty('--ar',W/H);
   const c=cv.getContext('2d');
   const cf=window.CFG||{};
   root.querySelector('#fm').textContent=[cf.MESSAGE,cf.FROM,cf.DATE].filter(Boolean).join('\n');
   root.querySelector('#fr').onclick=()=>window.restartAll();
   root.querySelector('#fs').onclick=()=>Sfx.birthday();
+  const tap=root.querySelector('#ftap');
+  const tapT=setInterval(()=>{tap.style.display=Sfx.blocked()?'block':'none';},400);
+  api.onCleanup(()=>clearInterval(tapT));
   let dead=false,raf=0,parts=[],conf=[],t0=performance.now(),nextFw=0;
   api.onCleanup(()=>{dead=true;cancelAnimationFrame(raf)});
   Sfx.win();setTimeout(()=>{Sfx.cheer();Sfx.birthday();},900);

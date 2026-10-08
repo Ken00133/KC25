@@ -1,5 +1,5 @@
 window.Sfx=(function(){
-  let ctx=null,on=true,timer=null,st=0,lastHit=0,songOn=false,songTimer=null;
+  let ctx=null,on=true,timer=null,st=0,lastHit=0,songOn=false,songTimer=null,pending=false;
   function init(){
     if(!ctx){const A=window.AudioContext||window.webkitAudioContext;if(A)ctx=new A();}
     if(ctx&&ctx.state==='suspended')ctx.resume();
@@ -60,7 +60,13 @@ window.Sfx=(function(){
     [523,659,784,1047].forEach((f,i)=>tone(f,0.12,'square',0.05,(PASS+0.2)*spb+i*0.07));
   }
   function birthday(){
-    init();if(!ctx)return;stopSong();songOn=true;
+    init();if(!ctx)return;
+    if(ctx.state!=='running'){
+      pending=true;
+      try{ctx.resume().then(()=>{if(pending&&ctx.state==='running'){pending=false;birthday();}});}catch(e){}
+      return;
+    }
+    pending=false;stopSong();songOn=true;
     const spb=60/SPB_BPM;
     (function loop(){
       if(!songOn)return;
@@ -68,9 +74,15 @@ window.Sfx=(function(){
       songTimer=setTimeout(loop,(PASS+3)*spb*1000);
     })();
   }
-  function stopSong(){songOn=false;if(songTimer){clearTimeout(songTimer);songTimer=null;}}
+  function stopSong(){songOn=false;pending=false;if(songTimer){clearTimeout(songTimer);songTimer=null;}}
+  function unlock(){
+    init();
+    if(pending&&ctx&&ctx.state==='running'){pending=false;birthday();}
+    else if(pending&&ctx){ctx.resume&&ctx.resume().then(()=>{if(pending&&ctx.state==='running'){pending=false;birthday();}});}
+  }
+  ['touchend','click','keydown'].forEach(ev=>window.addEventListener(ev,unlock,{passive:true}));
   return{
-    init,birthday,stopSong,
+    init,birthday,stopSong,blocked(){return pending},
     toggle(){on=!on;if(on&&!timer&&ctx)startBgm();return on;},
     click(){tone(660,0.06,'square',0.08)},
     good(){tone(660,0.1,'triangle',0.15);tone(880,0.15,'triangle',0.15,0.09)},
