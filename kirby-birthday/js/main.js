@@ -44,6 +44,14 @@
     show('<h2>'+g.title+'</h2><p>'+g.rules+'</p>'+btn('go','開始 ▶'));
     document.getElementById('go').onclick=()=>{Sfx.init();Sfx.click();hide();begin();};
   }
+  if(window.CFG&&CFG.DEBUG_SKIP){
+    const hud=document.getElementById('hud');
+    [['⏮',-1,'上一關'],['⏭',1,'下一關']].forEach(([ic,d,tt])=>{
+      const b=document.createElement('button');b.textContent=ic;b.title=tt;b.style.background='#ffd23f';
+      b.onclick=()=>{Sfx.init();ended=true;idx=Math.max(0,Math.min(Games.length,idx+d));fails=0;hide();intro();};
+      hud.insertBefore(b,mute);
+    });
+  }
   mute.onclick=()=>{Sfx.init();mute.textContent=Sfx.toggle()?'🔊':'🔇';};
   window.restartAll=()=>{idx=0;fails=0;intro();};
   const h=parseInt(location.hash.slice(1));

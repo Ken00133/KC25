@@ -19,13 +19,29 @@ start(root,api){
   }
   function checkVoice(){try{const v=speechSynthesis.getVoices();voiceOK=!!window.speechSynthesis&&(v.length===0||v.some(x=>/zh|cmn/i.test(x.lang)));}catch(e){voiceOK=false;}}
   checkVoice();
-  function speak(t){try{const u=new SpeechSynthesisUtterance(t);u.lang='zh-CN';u.rate=0.9;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+  let spoke=false;
+  function speak(t){
+    try{
+      const ss=window.speechSynthesis;if(!ss)return;
+      spoke=false;
+      if(ss.speaking||ss.pending)ss.cancel();
+      const u=new SpeechSynthesisUtterance(t);u.lang='zh-CN';u.rate=0.9;u.volume=1;
+      const v=(ss.getVoices()||[]).find(x=>/zh[-_]CN|cmn/i.test(x.lang));if(v)u.voice=v;
+      u.onstart=()=>{spoke=true};u.onerror=()=>{spoke=false};
+      setTimeout(()=>{try{ss.speak(u)}catch(e){}},60);
+    }catch(e){}
+  }
+  function unlockSpeech(){
+    try{const ss=window.speechSynthesis;if(!ss)return;ss.cancel();
+      const u=new SpeechSynthesisUtterance('預備');u.lang='zh-CN';u.rate=0.9;ss.speak(u);}catch(e){}
+  }
   function nextRound(){
     if(round>=8){startB();return;}
     cmdEl.textContent='預備…';acceptA=false;info.textContent='口令 '+(round+1)+' / 8  |  錯誤 '+mist+' / 3';
     later(()=>{
       let k;do{k=Math.floor(Math.random()*CM.length)}while(k===lastCmd);lastCmd=k;cur=k;
       checkVoice();cmdEl.textContent=voiceOK?'🔊 聽口令!':CM[k][0]+'!(此裝置沒有語音,顯示文字)';speak(CM[k][0]);Sfx.drum(true);
+      later(()=>{if(acceptA&&cur===k&&!spoke)cmdEl.textContent=CM[k][0]+'!(聽不到語音,顯示文字)';},1000);
       const lim=Math.round(2600-round*600/7);limA=lim;deadline=performance.now()+lim;acceptA=true;
       bar.style.transition='none';bar.style.width='100%';
       later(()=>{if(acceptA){acceptA=false;wrong('超時!');}},lim);
@@ -157,6 +173,7 @@ start(root,api){
     }
     raf=requestAnimationFrame(draw);
   }
-  mkBtns();raf=requestAnimationFrame(draw);later(nextRound,600);
+  unlockSpeech();
+  mkBtns();raf=requestAnimationFrame(draw);later(nextRound,1500);
 }});
 })();
