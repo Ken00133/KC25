@@ -1,7 +1,7 @@
 (function(){
 Games.push({
 title:'第三關:八球 🎱',
-rules:'完整八球規則:先打進第一粒球決定你是全色(1-7)或花色(9-15)。清光自己的球後,最後打進黑 8 獲勝。\n白球落袋或先碰錯球 = 犯規,對手可任意擺放白球。\n操作:在枱面按住拖曳(向瞄準的反方向拉),放手擊球;拉得越遠力度越大。橫向手機更好玩。',
+rules:'完整八球規則:先打進第一粒球決定你是全色(1-7)或花色(9-15)。清光自己的球後,最後打進黑 8 獲勝。\n白球落袋或先碰錯球 = 犯規,對手可任意擺放白球。\n操作:白球會一直顯示引導線(白色=白球路線,黃色=目標球去向,綠色=預計入袋)。點一下枱面可把瞄準方向轉向該點;按住拖曳(向瞄準的反方向拉)可微調,放手擊球,拉得越遠力度越大。橫向手機更好玩。',
 start(root,api){
   const W=800,H=400,R=10,M=30,PR=22;
   root.innerHTML='<div class="info" id="g3i"></div><canvas id="g3c"></canvas><div class="info" id="g3m"></div>';
@@ -143,16 +143,46 @@ start(root,api){
     const v=Math.max(8,Math.min(20,(best.d1+best.d2)/83*1.4+4));
     shoot(ang,v);msg='電腦擊球…';upd();
   }
-  function rayT(ang){
-    const dx=Math.cos(ang),dy=Math.sin(ang);let best=2000;
+  let aimAng=0;
+  function trace(ang){
+    const dx=Math.cos(ang),dy=Math.sin(ang);let best=2000,hit=null;
     for(const b of balls){
       if(b===cue||b.in)continue;
       const fx=b.x-cue.x,fy=b.y-cue.y,pr=fx*dx+fy*dy;if(pr<=0)continue;
       const p2=fx*fx+fy*fy-pr*pr;if(p2>4*R*R)continue;
-      best=Math.min(best,pr-Math.sqrt(4*R*R-p2));
+      const t=pr-Math.sqrt(4*R*R-p2);if(t<best){best=t;hit=b;}
     }
     const tx=dx>0?(W-M-R-cue.x)/dx:dx<0?(M+R-cue.x)/dx:1e9,ty=dy>0?(H-M-R-cue.y)/dy:dy<0?(M+R-cue.y)/dy:1e9;
-    return Math.min(best,tx,ty);
+    const tw=Math.min(tx,ty);
+    if(tw<best)return{t:tw,ball:null,wall:tx<ty?'x':'y',dx,dy};
+    return{t:best,ball:hit,dx,dy};
+  }
+  function seg(x1,y1,x2,y2,col,w,dash){
+    c.save();c.strokeStyle=col;c.lineWidth=w;c.setLineDash(dash||[]);c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();c.restore();
+  }
+  function drawGuide(ang,pow){
+    const r=trace(ang),ex=cue.x+r.dx*r.t,ey=cue.y+r.dy*r.t;
+    seg(cue.x,cue.y,ex,ey,'#ffffffcc',2,[8,6]);
+    c.save();c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(ex,ey,R,0,7);c.stroke();c.restore();
+    if(r.ball){
+      const hb=r.ball;let nx=hb.x-ex,ny=hb.y-ey;const nl=Math.hypot(nx,ny)||1;nx/=nl;ny/=nl;
+      let goes=null;
+      pockets.forEach(p=>{
+        const px=p[0]-hb.x,py=p[1]-hb.y,pr=px*nx+py*ny,perp=Math.abs(px*ny-py*nx);
+        if(pr>0&&perp<PR-4&&!blocked(hb.x,hb.y,p[0],p[1],[hb,cue]))goes=p;
+      });
+      const L=goes?Math.hypot(goes[0]-hb.x,goes[1]-hb.y):150;
+      seg(hb.x,hb.y,hb.x+nx*L,hb.y+ny*L,goes?'#7CFC00':'#ffd23f',3);
+      if(goes){c.save();c.strokeStyle='#7CFC00';c.lineWidth=4;c.beginPath();c.arc(goes[0],goes[1],PR+2,0,7);c.stroke();c.restore();}
+      const dot=r.dx*nx+r.dy*ny;let tx=r.dx-dot*nx,ty=r.dy-dot*ny;const tl=Math.hypot(tx,ty);
+      if(tl>0.05){const l=Math.min(90,30+tl*90);seg(ex,ey,ex+tx/tl*l,ey+ty/tl*l,'#ffffff99',2);}
+    }else{
+      let rx=r.dx,ry=r.dy;if(r.wall==='x')rx=-rx;else ry=-ry;
+      seg(ex,ey,ex+rx*160,ey+ry*160,'#ffffff66',2,[4,6]);
+    }
+    const bk=14+pow*70;
+    seg(cue.x-Math.cos(ang)*bk,cue.y-Math.sin(ang)*bk,cue.x-Math.cos(ang)*(bk+170),cue.y-Math.sin(ang)*(bk+170),'#e8c07a',5);
+    if(pow>0){c.fillStyle='#fff';c.fillRect(20,H-14,pow*200,6);}
   }
   function pt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};}
   cv.addEventListener('pointerdown',e=>{
@@ -161,10 +191,11 @@ start(root,api){
     if(phase==='aim'){drag={a:p,b:p};cv.setPointerCapture(e.pointerId);}
   });
   cv.addEventListener('pointermove',e=>{if(drag)drag.b=pt(e);});
-  cv.addEventListener('pointerup',()=>{
-    if(!drag)return;
+  cv.addEventListener('pointerup',e=>{
+    if(!drag)return;const up=pt(e);
     const dx=drag.a.x-drag.b.x,dy=drag.a.y-drag.b.y,dd=Math.hypot(dx,dy);drag=null;
-    if(dd>10&&phase==='aim'&&turn==='p'){shoot(Math.atan2(dy,dx),Math.min(dd,160)/160*20+1);msg='';upd();}
+    if(dd>10&&phase==='aim'&&turn==='p'){aimAng=Math.atan2(dy,dx);shoot(aimAng,Math.min(dd,160)/160*20+1);msg='';upd();}
+    else if(phase==='aim'&&turn==='p'&&Math.hypot(up.x-cue.x,up.y-cue.y)>R){aimAng=Math.atan2(up.y-cue.y,up.x-cue.x);}
   });
   function drawBall(b){
     c.fillStyle='#0003';c.beginPath();c.arc(b.x+2,b.y+3,R,0,7);c.fill();
@@ -185,16 +216,9 @@ start(root,api){
     c.fillStyle='#111';pockets.forEach(p=>{c.beginPath();c.arc(p[0],p[1],PR-3,0,7);c.fill();});
     balls.forEach(b=>{if(!b.in)drawBall(b);});
     if(phase==='aim'&&turn==='p'&&!cue.in){
-      let ang=null,pow=0;
-      if(drag){const dx=drag.a.x-drag.b.x,dy=drag.a.y-drag.b.y;if(Math.hypot(dx,dy)>4){ang=Math.atan2(dy,dx);pow=Math.min(Math.hypot(dx,dy),160)/160;}}
-      if(ang!==null){
-        const t=rayT(ang);c.setLineDash([6,6]);c.strokeStyle='#fff';c.lineWidth=2;
-        c.beginPath();c.moveTo(cue.x,cue.y);c.lineTo(cue.x+Math.cos(ang)*t,cue.y+Math.sin(ang)*t);c.stroke();c.setLineDash([]);
-        c.beginPath();c.arc(cue.x+Math.cos(ang)*t,cue.y+Math.sin(ang)*t,R,0,7);c.stroke();
-        const bk=14+pow*70;c.strokeStyle='#e8c07a';c.lineWidth=5;c.beginPath();
-        c.moveTo(cue.x-Math.cos(ang)*bk,cue.y-Math.sin(ang)*bk);c.lineTo(cue.x-Math.cos(ang)*(bk+170),cue.y-Math.sin(ang)*(bk+170));c.stroke();
-        c.fillStyle='#fff';c.fillRect(20,H-14,pow*200,6);
-      }
+      let pow=0;
+      if(drag){const dx=drag.a.x-drag.b.x,dy=drag.a.y-drag.b.y;if(Math.hypot(dx,dy)>4){aimAng=Math.atan2(dy,dx);pow=Math.min(Math.hypot(dx,dy),160)/160;}}
+      drawGuide(aimAng,pow);
     }
     if(phase==='place'&&turn==='p'){c.fillStyle='#fff';c.font='bold 22px sans-serif';c.textAlign='center';c.fillText('點擊放置白球',W/2,H/2-40);}
     raf=requestAnimationFrame(draw);
