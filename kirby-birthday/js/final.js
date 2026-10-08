@@ -1,14 +1,16 @@
 window.showFinal=function(root,api){
   const W=400,H=560;
-  root.innerHTML='<canvas id="fc"></canvas><div class="info" id="fm" style="max-width:380px"></div><div class="row"><button class="btn alt" id="fr">🔁 重玩一次</button></div>';
+  root.innerHTML='<canvas id="fc"></canvas><div class="info" id="fm" style="max-width:380px"></div><div class="row"><button class="btn" id="fs">🎵 重播生日歌</button><button class="btn alt" id="fr">🔁 重玩一次</button></div>';
   const cv=root.querySelector('#fc');cv.width=W;cv.height=H;cv.style.setProperty('--ar',W/H);
   const c=cv.getContext('2d');
   const cf=window.CFG||{};
   root.querySelector('#fm').textContent=[cf.MESSAGE,cf.FROM,cf.DATE].filter(Boolean).join('\n');
   root.querySelector('#fr').onclick=()=>window.restartAll();
+  root.querySelector('#fs').onclick=()=>Sfx.birthday();
   let dead=false,raf=0,parts=[],conf=[],t0=performance.now(),nextFw=0;
   api.onCleanup(()=>{dead=true;cancelAnimationFrame(raf)});
-  Sfx.win();setTimeout(()=>Sfx.cheer(),300);
+  Sfx.win();setTimeout(()=>{Sfx.cheer();Sfx.birthday();},900);
+  api.onCleanup(()=>Sfx.stopSong());
   for(let i=0;i<80;i++)conf.push({x:Math.random()*W,y:Math.random()*H,v:1+Math.random()*2,c:['#ff6fae','#4a90e2','#ffd23f','#fff','#034694'][i%5],r:Math.random()*6});
   function fw(){
     const x=50+Math.random()*300,y=60+Math.random()*180,col=['#ff6fae','#ffd23f','#4a90e2','#fff','#7ee081'][Math.floor(Math.random()*5)];

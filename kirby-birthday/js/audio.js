@@ -1,5 +1,5 @@
 window.Sfx=(function(){
-  let ctx=null,on=true,timer=null,st=0,lastHit=0;
+  let ctx=null,on=true,timer=null,st=0,lastHit=0,songOn=false,songTimer=null;
   function init(){
     if(!ctx){const A=window.AudioContext||window.webkitAudioContext;if(A)ctx=new A();}
     if(ctx&&ctx.state==='suspended')ctx.resume();
@@ -13,27 +13,64 @@ window.Sfx=(function(){
     g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
     o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+d+0.03);
   }
-  function noise(d,vol,hp){
+  function noise(d,vol,hp,delay){
     if(!ctx||!on)return;
     const n=Math.floor(ctx.sampleRate*d),buf=ctx.createBuffer(1,n,ctx.sampleRate),a=buf.getChannelData(0);
     for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);
     const s=ctx.createBufferSource();s.buffer=buf;
     const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=hp||800;
     const g=ctx.createGain();g.gain.value=vol||0.2;
-    s.connect(f);f.connect(g);g.connect(ctx.destination);s.start();
+    s.connect(f);f.connect(g);g.connect(ctx.destination);s.start(ctx.currentTime+(delay||0));
   }
   const mel=[523,587,659,784,880,784,659,587],bass=[131,175,196,175];
   function startBgm(){
     timer=setInterval(()=>{
-      if(!on||!ctx)return;
+      if(!on||!ctx||songOn)return;
       const k=st%8;
       tone(mel[(k*3+(st>>3))%8]*(k%4===3?1:1),0.18,'triangle',0.035);
       if(k%2===0)tone(bass[(st>>1)%4],0.3,'sine',0.05);
       st++;
     },260);
   }
+  
+  const NT={G4:392,A4:440,B4:494,C5:523,D5:587,E5:659,F5:698,G5:784};
+  const MEL=[
+    ['G4',.75],['G4',.25],['A4',1],['G4',1],['C5',1],['B4',2],
+    ['G4',.75],['G4',.25],['A4',1],['G4',1],['D5',1],['C5',2],
+    ['G4',.75],['G4',.25],['G5',1],['E5',1],['C5',1],['B4',1],['A4',1],
+    ['F5',.75],['F5',.25],['E5',1],['C5',1],['D5',1],['C5',2]
+  ];
+  const CH={C:[131,330,392],G:[98,247,294],F:[87,220,262]};
+  const BARS=['C','G','C','C','C','F','F','C'];
+  const PASS=24,SPB_BPM=132;
+  function playPass(t0){
+    const spb=60/SPB_BPM;let b=0;
+    MEL.forEach(([n,d])=>{
+      tone(NT[n],d*spb*0.9,'square',0.07,t0+b*spb-ctx.currentTime);
+      tone(NT[n]*2,d*spb*0.5,'square',0.015,t0+b*spb-ctx.currentTime);
+      b+=d;
+    });
+    BARS.forEach((c,i)=>{
+      const bt=t0+i*3*spb-ctx.currentTime,ch=CH[c];
+      tone(ch[0],spb*0.9,'triangle',0.14,bt);
+      tone(ch[1],spb*0.4,'square',0.03,bt+spb);tone(ch[2],spb*0.4,'square',0.03,bt+spb);
+      tone(ch[1],spb*0.4,'square',0.03,bt+2*spb);tone(ch[2],spb*0.4,'square',0.03,bt+2*spb);
+      noise(0.04,0.06,5000,i*3*spb);noise(0.03,0.04,6000,(i*3+1)*spb);noise(0.03,0.04,6000,(i*3+2)*spb);
+    });
+    [523,659,784,1047].forEach((f,i)=>tone(f,0.12,'square',0.05,(PASS+0.2)*spb+i*0.07));
+  }
+  function birthday(){
+    init();if(!ctx)return;stopSong();songOn=true;
+    const spb=60/SPB_BPM;
+    (function loop(){
+      if(!songOn)return;
+      if(on)playPass(ctx.currentTime+0.15);
+      songTimer=setTimeout(loop,(PASS+3)*spb*1000);
+    })();
+  }
+  function stopSong(){songOn=false;if(songTimer){clearTimeout(songTimer);songTimer=null;}}
   return{
-    init,
+    init,birthday,stopSong,
     toggle(){on=!on;if(on&&!timer&&ctx)startBgm();return on;},
     click(){tone(660,0.06,'square',0.08)},
     good(){tone(660,0.1,'triangle',0.15);tone(880,0.15,'triangle',0.15,0.09)},
