@@ -1,7 +1,7 @@
 (function(){
 Games.push({
 title:'第四關:十二碼點球 ⚽',
-rules:'標準互射點球:每方 5 球,先射的一方是你,領先到對手追不上就提早結束;5 球後平手則進入突然死亡。\n射門:點擊球門內的目標位置(太靠邊或太高可能射失)。\n撲救:對手起腳後,點擊球門想撲向的位置。',
+rules:'標準互射點球:每方 5 球,先射的一方是你,領先到對手追不上就提早結束;5 球後平手則進入突然死亡。\n射門:在球門上按住並移動手指(電腦用滑鼠移動)瞄準,從球出發的引導線會指向目標,放開(電腦點擊)即射門。太靠邊或太高可能射失。\n撲救:你當守門員,對手起腳後,點擊球門想撲向的位置。守門員是朋友們的大頭照!',
 start(root,api){
   const W=420,H=440,GX1=70,GX2=350,GY1=100,GY2=200,SX=210,SY=380;
   root.innerHTML='<div class="info" id="g4i"></div><canvas id="g4c"></canvas><div class="info" id="g4m"></div>';
@@ -10,6 +10,33 @@ start(root,api){
   const c=cv.getContext('2d');
   let pS=0,cS=0,pK=0,cK=0,pH=[],cH=[],mode='shoot',dead=false,raf=0,timers=[];
   let kx=210,kT=210,ball={x:SX,y:SY,s:1},anim=null,diveSet=false,txt='';
+  let pressing=false,aim=null,hover=null;
+  const NAMES=['Kirby','Sunny','Tom','Charles','Ken'];
+  const heads={};
+  NAMES.forEach(n=>{
+    const h={ready:false,cv:null},im=new Image();
+    im.onload=()=>{
+      try{
+        const S=96,o=document.createElement('canvas');o.width=o.height=S;
+        const x=o.getContext('2d'),sw=Math.min(im.naturalWidth,im.naturalHeight);
+        const sx=(im.naturalWidth-sw)/2,sy=(im.naturalHeight-sw)*0.3;
+        x.drawImage(im,sx,sy,sw,sw,0,0,S,S);
+        h.cv=o;h.ready=true;
+      }catch(e){}
+    };
+    im.src='pics/'+n+'.jpg';
+    heads[n]=h;
+  });
+  let keeperName=null,lastName=null;
+  function pickKeeper(){
+    let n;
+    if(cK<5)n=NAMES[cK];
+    else{
+      const pool=NAMES.filter(x=>x!==lastName);
+      n=pool[Math.floor(Math.random()*pool.length)];
+    }
+    lastName=n;return n;
+  }
   api.onCleanup(()=>{dead=true;cancelAnimationFrame(raf);timers.forEach(clearTimeout)});
   const later=(f,ms)=>timers.push(setTimeout(()=>{if(!dead)f()},ms));
   const lerp=(a,b,t)=>a+(b-a)*t;
@@ -18,9 +45,10 @@ start(root,api){
     msgEl.textContent=txt;
   }
   function hist(){return '你 '+pH.join(' ')+'  |  對手 '+cH.join(' ');}
-  function startShoot(){mode='shoot';kx=kT=210;ball={x:SX,y:SY,s:1};anim=null;txt='輪到你射門:點擊球門內的目標\n'+hist();upd();}
+  function startShoot(){mode='shoot';keeperName=null;kx=kT=210;ball={x:SX,y:SY,s:1};anim=null;txt='輪到你射門:按住球門瞄準,放開射門\n'+hist();upd();}
   function startSave(){
-    mode='save';kx=kT=210;diveSet=false;ball={x:SX,y:SY,s:1};anim=null;txt='對手準備射門…點擊球門選擇撲救位置\n'+hist();upd();Sfx.whistle();
+    mode='save';keeperName=pickKeeper();kx=kT=210;diveSet=false;ball={x:SX,y:SY,s:1};anim=null;aim=null;hover=null;pressing=false;
+    txt='你是守門員:'+keeperName+'!對手準備射門…點擊球門選擇撲救位置\n'+hist();upd();Sfx.whistle();
     later(()=>{
       let tx=90+Math.random()*240,ty=105+Math.random()*90;
       if(Math.random()<0.12){tx=Math.random()<0.5?GX1-30:GX2+30;}
@@ -28,19 +56,35 @@ start(root,api){
     },1300+Math.random()*900);
   }
   function pt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};}
+  function fire(p){
+    mode='anim';
+    const tx=p.x+(Math.random()-0.5)*24,ty=p.y+(Math.random()-0.5)*14;
+    kT=Math.random()<0.25?210:100+Math.random()*220;
+    anim={t0:performance.now(),dur:520,tx,ty,type:'shoot'};Sfx.kick();
+  }
   cv.addEventListener('pointerdown',e=>{
     const p=pt(e);
     if(mode==='shoot'){
-      if(p.y>270)return;
-      mode='anim';
-      let tx=p.x+(Math.random()-0.5)*24,ty=p.y+(Math.random()-0.5)*14;
-      const k2=Math.random()<0.25?210:100+Math.random()*220;kT=k2;
-      anim={t0:performance.now(),dur:520,tx,ty,type:'shoot'};Sfx.kick();
+      if(p.y>300||p.y>=SY-10)return;
+      pressing=true;aim=p;try{cv.setPointerCapture(e.pointerId)}catch(x){}
     }else if(mode==='save'){
       if(anim&&(performance.now()-anim.t0)/anim.dur>0.65)return;
       kT=Math.max(GX1+15,Math.min(GX2-15,p.x));diveSet=true;Sfx.click();
     }
   });
+  cv.addEventListener('pointermove',e=>{
+    if(mode!=='shoot')return;
+    const p=pt(e);
+    if(pressing)aim=p;else if(e.pointerType==='mouse')hover=p;
+  });
+  cv.addEventListener('pointerup',e=>{
+    if(mode==='shoot'&&pressing){
+      const p=pt(e);pressing=false;aim=null;
+      if(p.y<300&&p.y<SY-10)fire(p);
+    }
+  });
+  cv.addEventListener('pointercancel',()=>{pressing=false;aim=null;});
+  cv.addEventListener('pointerleave',()=>{hover=null;});
   function endKick(){
     const a=anim;anim=null;
     const inGoal=a.tx>GX1+4&&a.tx<GX2-4&&a.ty>GY1&&a.ty<GY2;
@@ -54,9 +98,9 @@ start(root,api){
     }else{
       if(!inGoal)res='miss';else res=Math.abs(kx-a.tx)<58?'save':'goal';
       cK++;cH.push(res==='goal'?'⚽':'✖');if(res==='goal')cS++;
-      txt=res==='goal'?'😱 對手入球…':res==='save'?'🧤 撲救成功!!':'😅 對手射失了!';
+      txt=res==='goal'?'😱 對手入球…('+keeperName+' 沒擋住)':res==='save'?'🧤 撲救成功!!('+keeperName+')':'😅 對手射失了!';
     }
-    if(res==='goal'){a.type==='shoot'?Sfx.cheer():Sfx.bad();if(a.type==='shoot')Sfx.good();}
+    if(res==='goal'){if(a.type==='shoot'){Sfx.cheer();Sfx.good();}else Sfx.bad();}
     else if(a.type==='shoot'){Sfx.bad();}else{Sfx.good();Sfx.cheer();}
     upd();mode='wait';
     later(()=>{
@@ -69,15 +113,39 @@ start(root,api){
       else if(a.type==='shoot')startSave();else startShoot();
     },1500);
   }
-  function keeper(x,dive){
+  function keeper(x,dive,name){
     c.save();c.translate(x,GY2-5);
     const tilt=Math.max(-0.7,Math.min(0.7,(kT-x)/90));c.rotate(tilt*(dive?1:0));
     c.fillStyle='#f5c400';c.fillRect(-12,-46,24,34);
     c.fillStyle='#222';c.fillRect(-12,-12,24,16);
-    c.fillStyle='#f2c9a0';c.beginPath();c.arc(0,-56,10,0,7);c.fill();
     c.strokeStyle='#f5c400';c.lineWidth=6;c.lineCap='round';
     c.beginPath();c.moveTo(-12,-42);c.lineTo(-30,-62-(dive?10:-12));c.moveTo(12,-42);c.lineTo(30,-62-(dive?10:-12));c.stroke();
     c.fillStyle='#fff';c.beginPath();c.arc(-31,-64-(dive?10:-12),5,0,7);c.arc(31,-64-(dive?10:-12),5,0,7);c.fill();
+    const h=name&&heads[name];
+    if(h&&h.ready){
+      const R=19;
+      c.save();c.beginPath();c.arc(0,-62,R,0,7);c.clip();c.drawImage(h.cv,-R,-62-R,2*R,2*R);c.restore();
+      c.strokeStyle='#fff';c.lineWidth=3;c.beginPath();c.arc(0,-62,R,0,7);c.stroke();
+    }else{
+      c.fillStyle='#f2c9a0';c.beginPath();c.arc(0,-56,10,0,7);c.fill();
+    }
+    c.restore();
+    if(name){c.save();c.font='bold 12px sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='#fff';c.strokeText(name,x,GY2-98);c.fillStyle='#3a2340';c.fillText(name,x,GY2-98);c.restore();}
+  }
+  function guide(g){
+    const dx=g.x-SX;
+    const inG=g.x>GX1+4&&g.x<GX2-4&&g.y>GY1&&g.y<GY2;
+    const col=inG?'#7CFC00':'#ff5252';
+    c.save();
+    c.strokeStyle='#fff';c.lineWidth=3;c.setLineDash([9,7]);
+    c.beginPath();c.moveTo(SX,SY-12);c.lineTo(g.x,g.y);c.stroke();
+    const yT=60;if(g.y>yT){
+      const xT=SX+dx*(SY-yT)/(SY-g.y);
+      c.strokeStyle='#ffffff66';c.lineWidth=2;c.beginPath();c.moveTo(g.x,g.y);c.lineTo(xT,yT);c.stroke();
+    }
+    c.setLineDash([]);
+    c.strokeStyle=col;c.lineWidth=3;c.beginPath();c.arc(g.x,g.y,13,0,7);c.stroke();
+    c.beginPath();c.moveTo(g.x-20,g.y);c.lineTo(g.x+20,g.y);c.moveTo(g.x,g.y-20);c.lineTo(g.x,g.y+20);c.stroke();
     c.restore();
   }
   function draw(now){
@@ -95,16 +163,15 @@ start(root,api){
     if(anim){
       const p=Math.min(1,(now-anim.t0)/anim.dur);
       ball.x=lerp(SX,anim.tx,p);ball.y=lerp(SY,anim.ty,p)-Math.sin(p*Math.PI)*18;ball.s=1-0.5*p;
-      if(anim.type==='shoot')kx=lerp(kx,kT,0.14);
-      if(p>=1&&mode!=='wait'){if(anim.type==='save')mode='wait';endKick();}
+      if(p>=1&&mode!=='wait'){mode='wait';endKick();}
     }
-    if(mode==='save'&&anim){kx=lerp(kx,kT,0.14);}
-    else if(mode==='wait'||mode==='save'||mode==='shoot'){kx=lerp(kx,kT,0.14);}
-    keeper(kx,Math.abs(kT-kx)>3||anim);
+    kx=lerp(kx,kT,0.14);
+    keeper(kx,Math.abs(kT-kx)>3||anim,keeperName);
+    if(mode==='shoot'){const g=pressing?aim:hover;if(g)guide(g);}
     c.fillStyle='#0004';c.beginPath();c.ellipse(ball.x,ball.y+10*ball.s,10*ball.s,4*ball.s,0,0,7);c.fill();
     c.fillStyle='#fff';c.strokeStyle='#222';c.lineWidth=1.5;c.beginPath();c.arc(ball.x,ball.y,11*ball.s,0,7);c.fill();c.stroke();
     c.fillStyle='#222';c.beginPath();c.arc(ball.x,ball.y,4*ball.s,0,7);c.fill();
-    if(mode==='shoot'){c.fillStyle='#fff';c.font='bold 16px sans-serif';c.textAlign='center';c.fillText('👆 點擊球門射門',W/2,GY2+60);}
+    if(mode==='shoot'&&!pressing&&!hover){c.fillStyle='#fff';c.font='bold 16px sans-serif';c.textAlign='center';c.fillText('👆 按住球門瞄準,放開射門',W/2,GY2+60);}
     raf=requestAnimationFrame(draw);
   }
   raf=requestAnimationFrame(draw);
