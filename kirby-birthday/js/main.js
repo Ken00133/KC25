@@ -11,7 +11,7 @@
   const rsrc=r=>'pics/'+encodeURIComponent(r.f);
   const BADGE='position:absolute;right:6px;bottom:6px;background:rgba(58,35,64,.82);color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px;pointer-events:none';
   let unlocked=REWARDS.map(()=>false);
-  let idx=0,fails=0,cleanups=[],ended=false;
+  let idx=0,fails=0,cleanups=[],ended=false,phase='intro';
   const lb=document.createElement('div');
   lb.style.cssText='position:fixed;inset:0;background:rgba(20,10,30,.94);display:none;z-index:30;flex-direction:column;align-items:center;justify-content:center;padding:12px;cursor:zoom-out';
   lb.innerHTML='<img id="lbimg" alt="" style="max-width:100%;max-height:82dvh;object-fit:contain;border-radius:10px;box-shadow:0 4px 24px #000a"><div id="lbcap" style="color:#fff;font-weight:700;margin-top:12px;text-align:center;font-size:17px"></div><div style="color:#ffffffaa;font-size:12px;margin-top:6px">點任何位置關閉</div>';
@@ -36,6 +36,7 @@
   }
   function gallery(label,cb){
     const n=unlocked.filter(Boolean).length,all=n===REWARDS.length;
+    phase='gallery';
     let cells='';
     REWARDS.forEach((r,i)=>{
       cells+=unlocked[i]
@@ -60,7 +61,7 @@
     win(){
       if(ended)return;ended=true;Sfx.win();
       setTimeout(()=>{
-        teardown();
+        teardown();phase='won';
         const r=REWARDS[idx],ri=idx;unlocked[idx]=true;
         const n=unlocked.filter(Boolean).length,last=idx===Games.length-1;
         show('<h2>🎉 過關!</h2><p>🎁 解鎖獎勵 '+n+' / '+REWARDS.length+'</p>'
@@ -73,7 +74,7 @@
     lose(msg){
       if(ended)return;ended=true;Sfx.lose();fails++;updHud();
       setTimeout(()=>{
-        teardown();
+        teardown();phase='lost';
         let h='<h2>😢 失敗</h2><p>'+(msg||'再試一次吧!')+'</p>'+btn('rt','🔁 再試一次');
         if(fails>=3)h+=btn('sk','⏭ 跳過此關(沒有獎勵)','gray');
         show(h);
@@ -84,27 +85,30 @@
     }
   };
   function begin(){
-    ended=false;teardown();updHud();
+    ended=false;phase='play';teardown();updHud();
     Games[idx].start(stage,api);
   }
   function intro(){
-    teardown();updHud();
-    if(idx>=Games.length){hide();lvl.textContent='🎂';failEl.textContent='';showFinal(stage,api);return;}
+    teardown();updHud();phase='intro';
+    if(idx>=Games.length){hide();lvl.textContent='🎂';failEl.textContent='';phase='final';showFinal(stage,api);return;}
     const g=Games[idx];
     show('<h2>'+g.title+'</h2><p>'+g.rules+'</p>'+btn('go','開始 ▶'));
     document.getElementById('go').onclick=()=>{Sfx.init();Sfx.click();hide();begin();};
   }
   if(window.CFG&&CFG.DEBUG_SKIP){
     const hud=document.getElementById('hud');
-    [['⏮',-1,'上一關'],['⏭',1,'下一關(跳過,不計獎勵)']].forEach(([ic,d,tt])=>{
-      const b=document.createElement('button');b.textContent=ic;b.title=tt;b.style.background='#ffd23f';
-      b.onclick=()=>{
-        Sfx.init();ended=true;
-        if(d>0){hide();next();}
-        else{idx=Math.max(0,idx-1);fails=0;hide();intro();}
-      };
-      hud.insertBefore(b,mute);
-    });
+    const mk=(ic,tt,fn,bg)=>{
+      const b=document.createElement('button');b.textContent=ic;b.title=tt;b.style.background=bg||'#ffd23f';
+      b.onclick=()=>{Sfx.init();fn();};hud.insertBefore(b,mute);
+    };
+    mk('⏮','上一關',()=>{ended=true;idx=Math.max(0,idx-1);fails=0;hide();intro();});
+    mk('✅','一鍵過關(算過關,會解鎖獎勵)',()=>{
+      if(idx>=Games.length||phase==='final'||phase==='gallery')return;
+      if(phase==='won'){hide();next();return;}
+      if(phase!=='play'){hide();begin();}
+      api.win();
+    },'#7ee081');
+    mk('⏭','跳過此關(不解鎖獎勵)',()=>{ended=true;hide();next();});
   }
   mute.onclick=()=>{Sfx.init();mute.textContent=Sfx.toggle()?'🔊':'🔇';};
   window.restartAll=()=>{idx=0;fails=0;unlocked=REWARDS.map(()=>false);intro();};
