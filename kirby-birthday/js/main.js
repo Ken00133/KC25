@@ -4,8 +4,8 @@
   const REWARDS=[
     {f:'Random Party Room.jpg',t:'Level 1 clear!隊友集合完畢',s:'派對室'},
     {f:'Near Christmas.jpg',t:'聖誕樹:我只是來打醬油的',s:'聖誕樹'},
-    {f:'Macau.jpg',t:'澳門街頭,一起走過的路',s:'澳門街頭'},
-    {f:'Macau2.jpg',t:'那個手勢是想把澳門塔抓起來嗎',s:'澳門塔'},
+    {f:'Macau2.jpg',t:'澳門街頭,一起走過的路',s:'澳門街頭'},
+    {f:'Macau.jpg',t:'那個手勢是想把澳門塔抓起來嗎',s:'澳門塔'},
     {f:'Hotpot with Sunny birthday.jpg',t:'火鍋太好吃,表情都管理不了',s:'火鍋聚會'}
   ];
   const rsrc=r=>'pics/'+encodeURIComponent(r.f);
