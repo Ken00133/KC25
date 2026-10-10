@@ -9,8 +9,23 @@
     {f:'Hotpot with Sunny birthday.jpg',t:'火鍋太好吃,表情都管理不了',s:'火鍋聚會'}
   ];
   const rsrc=r=>'pics/'+encodeURIComponent(r.f);
+  const BADGE='position:absolute;right:6px;bottom:6px;background:rgba(58,35,64,.82);color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px;pointer-events:none';
   let unlocked=REWARDS.map(()=>false);
   let idx=0,fails=0,cleanups=[],ended=false;
+  const lb=document.createElement('div');
+  lb.style.cssText='position:fixed;inset:0;background:rgba(20,10,30,.94);display:none;z-index:30;flex-direction:column;align-items:center;justify-content:center;padding:12px;cursor:zoom-out';
+  lb.innerHTML='<img id="lbimg" alt="" style="max-width:100%;max-height:82dvh;object-fit:contain;border-radius:10px;box-shadow:0 4px 24px #000a"><div id="lbcap" style="color:#fff;font-weight:700;margin-top:12px;text-align:center;font-size:17px"></div><div style="color:#ffffffaa;font-size:12px;margin-top:6px">點任何位置關閉</div>';
+  document.body.appendChild(lb);
+  function openPhoto(i){
+    const r=REWARDS[i];
+    lb.querySelector('#lbimg').src=rsrc(r);
+    lb.querySelector('#lbcap').textContent=r.t;
+    lb.style.display='flex';Sfx.click();
+  }
+  function closePhoto(){lb.style.display='none';}
+  lb.onclick=closePhoto;
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhoto();});
+  window.openPhoto=openPhoto;
   function teardown(){cleanups.forEach(f=>{try{f()}catch(e){}});cleanups=[];stage.innerHTML='';}
   function show(html){box.innerHTML=html;ov.style.display='flex';}
   function hide(){ov.style.display='none';}
@@ -24,12 +39,14 @@
     let cells='';
     REWARDS.forEach((r,i)=>{
       cells+=unlocked[i]
-        ?'<div><img src="'+rsrc(r)+'" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block"><div style="font-size:11px;margin-top:2px">'+r.s+'</div></div>'
+        ?'<div class="gthumb" data-i="'+i+'" style="cursor:zoom-in"><div style="position:relative"><img src="'+rsrc(r)+'" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block"><span style="position:absolute;right:4px;bottom:4px;background:rgba(58,35,64,.82);color:#fff;font-size:11px;padding:1px 6px;border-radius:10px;pointer-events:none">🔍 放大</span></div><div style="font-size:11px;margin-top:2px">'+r.s+'</div></div>'
         :'<div><div style="width:100%;aspect-ratio:1;border-radius:10px;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:28px">🔒</div><div style="font-size:11px;margin-top:2px">未解鎖</div></div>';
     });
     show('<h2>'+(all?'🎊 你解鎖了全部 5 個獎勵!':'🎁 你解鎖了 '+n+' / '+REWARDS.length+' 個獎勵')+'</h2>'
+      +'<p style="background:#fff3c4;border-radius:10px;padding:6px 10px;font-size:14px;font-weight:700">👆 點擊相片可以放大查看</p>'
       +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0">'+cells+'</div>'
       +(all?'<p>全部回憶集齊了!</p>':'<p>跳過的關卡沒有獎勵。</p>')+btn('gok',label));
+    box.querySelectorAll('.gthumb').forEach(el=>{el.onclick=()=>openPhoto(+el.dataset.i);});
     document.getElementById('gok').onclick=cb;
   }
   window.showGallery=()=>gallery('關閉',()=>hide());
@@ -44,11 +61,12 @@
       if(ended)return;ended=true;Sfx.win();
       setTimeout(()=>{
         teardown();
-        const r=REWARDS[idx];unlocked[idx]=true;
+        const r=REWARDS[idx],ri=idx;unlocked[idx]=true;
         const n=unlocked.filter(Boolean).length,last=idx===Games.length-1;
         show('<h2>🎉 過關!</h2><p>🎁 解鎖獎勵 '+n+' / '+REWARDS.length+'</p>'
-          +'<img src="'+rsrc(r)+'" alt="" style="max-width:100%;max-height:42dvh;border-radius:12px;box-shadow:0 3px 10px #0004">'
-          +'<p><b>'+r.t+'</b></p>'+btn('nx',last?'領取全部獎勵 ▶':'下一關 ▶'));
+          +'<div id="rwwrap" style="position:relative;display:inline-block;cursor:zoom-in"><img id="rwimg" src="'+rsrc(r)+'" alt="" style="max-width:100%;max-height:42dvh;border-radius:12px;box-shadow:0 3px 10px #0004;display:block"><span style="'+BADGE+'">🔍 點擊放大</span></div>'
+          +'<p><b>'+r.t+'</b></p><p style="background:#fff3c4;border-radius:10px;padding:5px 10px;font-size:13px;font-weight:700">👆 點擊相片可以放大查看</p>'+btn('nx',last?'領取全部獎勵 ▶':'下一關 ▶'));
+        document.getElementById('rwwrap').onclick=()=>openPhoto(ri);
         document.getElementById('nx').onclick=next;
       },700);
     },
