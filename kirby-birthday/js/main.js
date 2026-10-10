@@ -2,11 +2,11 @@
   const stage=document.getElementById('stage'),ov=document.getElementById('overlay'),box=document.getElementById('box');
   const lvl=document.getElementById('lvl'),failEl=document.getElementById('fails'),mute=document.getElementById('mute');
   const REWARDS=[
-    {f:'Random Party Room.jpg',t:'Random Party Room'},
-    {f:'Near Christmas.jpg',t:'Near Christmas'},
-    {f:'Macau.jpg',t:'Macau'},
-    {f:'Macau2.jpg',t:'Macau 2'},
-    {f:'Hotpot with Sunny birthday.jpg',t:'Hotpot with Sunny birthday'}
+    {f:'Random Party Room.jpg',t:'Level 1 clear!隊友集合完畢',s:'派對室'},
+    {f:'Near Christmas.jpg',t:'聖誕樹:我只是來打醬油的',s:'聖誕樹'},
+    {f:'Macau.jpg',t:'澳門街頭,一起走過的路',s:'澳門街頭'},
+    {f:'Macau2.jpg',t:'那個手勢是想把澳門塔抓起來嗎',s:'澳門塔'},
+    {f:'Hotpot with Sunny birthday.jpg',t:'火鍋太好吃,表情都管理不了',s:'火鍋聚會'}
   ];
   const rsrc=r=>'pics/'+encodeURIComponent(r.f);
   let unlocked=REWARDS.map(()=>false);
@@ -24,7 +24,7 @@
     let cells='';
     REWARDS.forEach((r,i)=>{
       cells+=unlocked[i]
-        ?'<div><img src="'+rsrc(r)+'" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block"><div style="font-size:11px;margin-top:2px">'+r.t+'</div></div>'
+        ?'<div><img src="'+rsrc(r)+'" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block"><div style="font-size:11px;margin-top:2px">'+r.s+'</div></div>'
         :'<div><div style="width:100%;aspect-ratio:1;border-radius:10px;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:28px">🔒</div><div style="font-size:11px;margin-top:2px">未解鎖</div></div>';
     });
     show('<h2>'+(all?'🎊 你解鎖了全部 5 個獎勵!':'🎁 你解鎖了 '+n+' / '+REWARDS.length+' 個獎勵')+'</h2>'
