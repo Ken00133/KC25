@@ -3,5 +3,5 @@ window.CFG = {
   MESSAGE: "祝你生日快樂,身體健康,天天開心!",
   FROM: "— 你的好友",
   DATE: "2026-10-11",   // 例如 "2026-10-08",留空就不顯示
-  DEBUG_SKIP: true      // 除錯用:true = 右上角顯示「上一關 / 下一關」按鈕;正式送出前改成 false
+  DEBUG_SKIP: false      // 除錯用:true = 右上角顯示「上一關 / 下一關」按鈕;正式送出前改成 false
 };

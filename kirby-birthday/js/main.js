@@ -6,7 +6,7 @@
     {f:'Near Christmas.jpg',t:'聖誕樹:我只是來打醬油的',s:'聖誕樹'},
     {f:'Macau2.jpg',t:'澳門街頭,一起走過的路',s:'澳門街頭'},
     {f:'Macau.jpg',t:'那個手勢是想把澳門塔抓起來嗎',s:'澳門塔'},
-    {f:'Hotpot with Sunny birthday.jpg',t:'火鍋太好吃,表情都管理不了',s:'火鍋聚會'}
+    {f:'Hotpot with Sunny birthday.jpg',t:'一起吃過的火鍋,一起記住的日子',s:'火鍋Sunny Birthday'}
   ];
   const rsrc=r=>'pics/'+encodeURIComponent(r.f);
   const BADGE='position:absolute;right:6px;bottom:6px;background:rgba(58,35,64,.82);color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px;pointer-events:none';
