@@ -93,11 +93,11 @@ start(root,api){
     if(a.type==='shoot'){
       const edge=a.tx<GX1+25||a.tx>GX2-25||a.ty<GY1+14;
       if(!inGoal||(edge&&Math.random()<0.15))res='miss';
-      else res=Math.abs(kx-a.tx)<52?'save':'goal';
+      else res=Math.abs(kx-a.tx)<50?'save':'goal';
       pK++;pH.push(res==='goal'?'⚽':'✖');if(res==='goal')pS++;
       txt=res==='goal'?'⚽ 入球!!':res==='save'?'🧤 被守門員撲出!':'❌ 射失了!';
     }else{
-      if(!inGoal)res='miss';else res=Math.abs(kx-a.tx)<58?'save':'goal';
+      if(!inGoal)res='miss';else res=Math.abs(kx-a.tx)<50?'save':'goal';
       cK++;cH.push(res==='goal'?'⚽':'✖');if(res==='goal')cS++;
       txt=res==='goal'?'😱 對手入球…('+keeperName+' 沒擋住)':res==='save'?'🧤 撲救成功!!('+keeperName+')':'😅 對手射失了!';
     }
