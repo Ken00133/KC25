@@ -81,8 +81,12 @@ window.Sfx=(function(){
     else if(pending&&ctx){ctx.resume&&ctx.resume().then(()=>{if(pending&&ctx.state==='running'){pending=false;birthday();}});}
   }
   ['touchend','click','keydown'].forEach(ev=>window.addEventListener(ev,unlock,{passive:true}));
+  function saveSnd(){
+    tone(110,0.18,'sine',0.35);noise(0.12,0.3,500);
+    tone(330,0.07,'square',0.12,0.05);tone(247,0.09,'square',0.12,0.12);tone(494,0.2,'triangle',0.16,0.2);
+  }
   return{
-    init,birthday,stopSong,blocked(){return pending},
+    init,birthday,stopSong,blocked(){return pending},save:saveSnd,
     toggle(){on=!on;if(on&&!timer&&ctx)startBgm();return on;},
     click(){tone(660,0.06,'square',0.08)},
     good(){tone(660,0.1,'triangle',0.15);tone(880,0.15,'triangle',0.15,0.09)},

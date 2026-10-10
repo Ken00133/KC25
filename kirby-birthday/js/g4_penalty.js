@@ -12,6 +12,7 @@ start(root,api){
   let kx=210,kT=210,ball={x:SX,y:SY,s:1},anim=null,diveSet=false,txt='';
   let pressing=false,aim=null,hover=null;
   const NAMES=['Kirby','Sunny','Tom','Charles','Ken'];
+  const CROP={Tom:0.8,Charles:0.92};
   const heads={};
   NAMES.forEach(n=>{
     const h={ready:false,cv:null},im=new Image();
@@ -19,7 +20,7 @@ start(root,api){
       try{
         const S=96,o=document.createElement('canvas');o.width=o.height=S;
         const x=o.getContext('2d'),sw=Math.min(im.naturalWidth,im.naturalHeight);
-        const sx=(im.naturalWidth-sw)/2,sy=(im.naturalHeight-sw)*0.3;
+        const sx=(im.naturalWidth-sw)/2,sy=(im.naturalHeight-sw)*(CROP[n]!==undefined?CROP[n]:0.3);
         x.drawImage(im,sx,sy,sw,sw,0,0,S,S);
         h.cv=o;h.ready=true;
       }catch(e){}
@@ -100,8 +101,13 @@ start(root,api){
       cK++;cH.push(res==='goal'?'⚽':'✖');if(res==='goal')cS++;
       txt=res==='goal'?'😱 對手入球…('+keeperName+' 沒擋住)':res==='save'?'🧤 撲救成功!!('+keeperName+')':'😅 對手射失了!';
     }
-    if(res==='goal'){if(a.type==='shoot'){Sfx.cheer();Sfx.good();}else Sfx.bad();}
-    else if(a.type==='shoot'){Sfx.bad();}else{Sfx.good();Sfx.cheer();}
+    if(a.type==='shoot'){
+      if(res==='goal'){Sfx.cheer();Sfx.good();}else Sfx.bad();
+    }else{
+      if(res==='save')Sfx.save();
+      else if(res==='goal')Sfx.bad();
+      else Sfx.good();
+    }
     upd();mode='wait';
     later(()=>{
       const pr=Math.max(0,5-pK),cr=Math.max(0,5-cK);
